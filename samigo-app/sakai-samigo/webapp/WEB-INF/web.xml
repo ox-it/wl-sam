@@ -323,8 +323,9 @@
     <load-on-startup>100</load-on-startup>
   </servlet>
 
-  <servlet>
    	<!--  Ordering change required - PAFH 9/7/2006 -->
+  <!--
+  <servlet>
     <display-name>SOAPMonitorService</display-name>
     <servlet-name>SOAPMonitorService</servlet-name>
     <servlet-class>
@@ -336,6 +337,7 @@
     </init-param>
     <load-on-startup>100</load-on-startup>
   </servlet>
+  -->
 
   <servlet-mapping>
     <servlet-name>AxisServlet</servlet-name>
@@ -352,10 +354,12 @@
     <url-pattern>/services/*</url-pattern>
   </servlet-mapping>
 
+  <!--
   <servlet-mapping>
     <servlet-name>SOAPMonitorService</servlet-name>
     <url-pattern>/SOAPMonitor</url-pattern>
   </servlet-mapping>
+  -->
 
  
   <!-- BEGIN SAMIGO JSF SECTION-->
