@@ -403,9 +403,9 @@ public class SubmitToGradingActionListener implements ActionListener {
 				Long oldAnswerId = oldItem.getPublishedAnswerId();
 				Long newAnswerId = newItem.getPublishedAnswerId();
 				String oldRationale = oldItem.getRationale();
-				String newRationale = newItem.getRationale();
+				String newRationale = ContextUtil.processFormattedText(log, newItem.getRationale());
 				String oldAnswerText = oldItem.getAnswerText();
-				String newAnswerText = newItem.getAnswerText();
+				String newAnswerText = ContextUtil.processFormattedText(log, newItem.getAnswerText());
 				if ((oldReview != null && !oldReview.equals(newReview))
 				    || (newReview!=null && !newReview.equals(oldReview))
 						|| (oldAnswerId != null && !oldAnswerId
@@ -425,9 +425,9 @@ public class SubmitToGradingActionListener implements ActionListener {
 						|| mcmrMap.get(oldItem.getPublishedItemId()) != null) {
 					oldItem.setReview(newItem.getReview());
 					oldItem.setPublishedAnswerId(newItem.getPublishedAnswerId());
-					oldItem.setRationale(newItem.getRationale());
+					oldItem.setRationale(newRationale);
 							
-					oldItem.setAnswerText(newItem.getAnswerText());
+					oldItem.setAnswerText(newAnswerText);
 					oldItem.setSubmittedDate(new Date());
 					oldItem.setAutoScore(newItem.getAutoScore());
 					oldItem.setOverrideScore(newItem.getOverrideScore());
@@ -524,6 +524,9 @@ public class SubmitToGradingActionListener implements ActionListener {
 							// null=> skipping this question
 							itemgrading.setAgentId(AgentFacade.getAgentString());
 							itemgrading.setSubmittedDate(new Date());
+							if (itemgrading.getRationale() != null && itemgrading.getRationale().length() > 0) {
+								itemgrading.setRationale(ContextUtil.processFormattedText(log, itemgrading.getRationale()));
+							}
 							// the rest of the info is collected by
 							// ItemContentsBean via JSF form
 							adds.add(itemgrading);
@@ -536,7 +539,6 @@ public class SubmitToGradingActionListener implements ActionListener {
 			}
 			break;
 		case 4: // T/F
-		case 5: // SAQ
 		case 9: // Matching
 			for (int m = 0; m < grading.size(); m++) {
 				ItemGradingData itemgrading = (ItemGradingData) grading.get(m);
@@ -551,13 +553,36 @@ public class SubmitToGradingActionListener implements ActionListener {
 					break;
 				} else if (itemgrading.getPublishedAnswerId() != null
 						|| itemgrading.getAnswerText() != null ) {
+					if (itemgrading.getRationale() != null && itemgrading.getRationale().length() > 0) {
+						itemgrading.setRationale(ContextUtil.processFormattedText(log, itemgrading.getRationale()));
+					}
 					adds.addAll(grading);
 					break;
 				}
 			}
 			break;
+		case 5: // SAQ
+			for (int m = 0; m < grading.size(); m++) {
+				ItemGradingData itemgrading = (ItemGradingData) grading.get(m);
+				itemgrading.setAgentId(AgentFacade.getAgentString());
+				itemgrading.setSubmittedDate(new Date());
+			}
+			for (int m = 0; m < grading.size(); m++) {
+				ItemGradingData itemgrading = (ItemGradingData) grading.get(m);
+				if (itemgrading.getItemGradingId() != null
+						&& itemgrading.getItemGradingId().intValue() > 0) {
+					adds.addAll(grading);
+					break;
+				} else if (itemgrading.getAnswerText() != null && !itemgrading.getAnswerText().equals("")) {
+					itemgrading.setAnswerText(ContextUtil.processFormattedText(log, itemgrading.getAnswerText()));
+					adds.addAll(grading);
+					break;
+				}
+			}
+			break;			
 		case 8: // FIB
 		case 11: // FIN
+			boolean addedToAdds = false;
 			for (int m = 0; m < grading.size(); m++) {
 				ItemGradingData itemgrading = (ItemGradingData) grading.get(m);
 				itemgrading.setAgentId(AgentFacade.getAgentString());
@@ -572,8 +597,11 @@ public class SubmitToGradingActionListener implements ActionListener {
 				} else if (itemgrading.getAnswerText() != null && !itemgrading.getAnswerText().equals("")) {
 					String s = itemgrading.getAnswerText();
 					log.debug("s = " + s);
-					adds.addAll(grading);
-					break;
+					itemgrading.setAnswerText(ContextUtil.processFormattedText(log, s));
+					if (!addedToAdds) {
+						adds.addAll(grading);
+						addedToAdds = true;
+					}
 				}
 			}
 			break;
@@ -668,10 +696,15 @@ public class SubmitToGradingActionListener implements ActionListener {
 	 * We create an ItemGradingData when it is not yet created
 	 */
 	public void completeItemGradingData() {
-		ArrayList answeredPublishedItemIdList = new ArrayList();
 		DeliveryBean delivery = (DeliveryBean) ContextUtil.lookupBean("delivery");
+		completeItemGradingData(delivery.getAssessmentGrading());
+	}
 
-		AssessmentGradingData assessmentGradingData = delivery.getAssessmentGrading();
+	/*
+	 * We create an ItemGradingData when it is not yet created
+	 */
+	public void completeItemGradingData(AssessmentGradingData assessmentGradingData) {
+		ArrayList answeredPublishedItemIdList = new ArrayList();
 		GradingService gradingService = new GradingService();
 		List itemGradingIds = gradingService.getItemGradingIds(assessmentGradingData.getAssessmentGradingId());
 		Iterator iter = itemGradingIds.iterator();
@@ -681,9 +714,9 @@ public class SubmitToGradingActionListener implements ActionListener {
 			log.debug("answeredPublishedItemId = " + answeredPublishedItemId);
 			answeredPublishedItemIdList.add(answeredPublishedItemId);
 		}
-		
+
 		PublishedAssessmentService publishedAssessmentService = new PublishedAssessmentService();
-		HashSet sectionSet = publishedAssessmentService.getSectionSetForAssessment(delivery.getAssessmentGrading().getPublishedAssessmentId());
+		HashSet sectionSet = publishedAssessmentService.getSectionSetForAssessment(assessmentGradingData.getPublishedAssessmentId());
 		PublishedSectionData publishedSectionData;
 		iter = sectionSet.iterator();
 		while (iter.hasNext()) {
@@ -696,13 +729,13 @@ public class SubmitToGradingActionListener implements ActionListener {
 			if (authorType != null && authorType.equals(SectionDataIfc.RANDOM_DRAW_FROM_QUESTIONPOOL.toString())) {
 				log.debug("Random draw from questonpool");
 				itemArrayList = publishedSectionData.getItemArray();
-			   	long seed = (long) AgentFacade.getAgentString().hashCode();
+				long seed = (long) AgentFacade.getAgentString().hashCode();
 				if (publishedSectionData.getSectionMetaDataByLabel(SectionDataIfc.RANDOMIZATION_TYPE) != null && publishedSectionData.getSectionMetaDataByLabel(SectionDataIfc.RANDOMIZATION_TYPE).equals(SectionDataIfc.PER_SUBMISSION)) {
 					seed = (long) (assessmentGradingData.getAssessmentGradingId().toString() + "_" + publishedSectionData.getSectionId().toString()).hashCode();
-				 }
+				}
 
 				Collections.shuffle(itemArrayList,  new Random(seed));
-				
+
 				Integer numberToBeDrawn = new Integer(0);
 				if (publishedSectionData.getSectionMetaDataByLabel(SectionDataIfc.NUM_QUESTIONS_DRAWN) !=null ) {
 					numberToBeDrawn= new Integer(publishedSectionData.getSectionMetaDataByLabel(SectionDataIfc.NUM_QUESTIONS_DRAWN));
@@ -714,7 +747,7 @@ public class SubmitToGradingActionListener implements ActionListener {
 					publishedItemId = publishedItemData.getItemId();
 					log.debug("publishedItemId = " + publishedItemId); 
 					if (!answeredPublishedItemIdList.contains(publishedItemId)) {
-						saveItemGradingData(delivery, publishedItemId);
+						saveItemGradingData(assessmentGradingData, publishedItemId);
 					}
 				}
 			}
@@ -727,18 +760,23 @@ public class SubmitToGradingActionListener implements ActionListener {
 					publishedItemId = publishedItemData.getItemId();
 					log.debug("publishedItemId = " + publishedItemId);
 					if (!answeredPublishedItemIdList.contains(publishedItemId)) {
-						saveItemGradingData(delivery, publishedItemId);
+						saveItemGradingData(assessmentGradingData, publishedItemId);
 					}
 				}
 			}
 		}
 	}
-		
-	private void saveItemGradingData(DeliveryBean delivery, Long publishedItemId) {
+
+	private void saveItemGradingData(AssessmentGradingData assessmentGradingData, Long publishedItemId) {
 		log.debug("Adding one ItemGradingData...");
 		ItemGradingData itemGradingData = new ItemGradingData();
-		itemGradingData.setAssessmentGradingId(delivery.getAssessmentGrading().getAssessmentGradingId());
-		itemGradingData.setAgentId(AgentFacade.getAgentString());
+		itemGradingData.setAssessmentGradingId(assessmentGradingData.getAssessmentGradingId());
+		if (AgentFacade.getAgentString() == null || AgentFacade.getAgentString().equals("")) {
+			itemGradingData.setAgentId(assessmentGradingData.getAgentId());
+		}
+		else {
+			itemGradingData.setAgentId(AgentFacade.getAgentString());
+		}
 		itemGradingData.setPublishedItemId(publishedItemId);
 		ItemService itemService = new ItemService();
 		Long itemTextId = itemService.getItemTextId(publishedItemId);
@@ -747,5 +785,4 @@ public class SubmitToGradingActionListener implements ActionListener {
 		GradingService gradingService = new GradingService();
 		gradingService.saveItemGrading(itemGradingData);
 	}
-
 }

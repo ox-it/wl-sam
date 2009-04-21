@@ -107,6 +107,8 @@ function clickSubmitForGrade(){
     elapsed="#{delivery.timeElapse}"
 	expireMessage1="#{deliveryMessages.time_expired1}"
 	expireMessage2="#{deliveryMessages.time_expired2}"
+	fiveMinutesMessage1="#{deliveryMessages.five_minutes_left1}"
+	fiveMinutesMessage2="#{deliveryMessages.five_minutes_left2}"
     expireScript="document.forms[0].elements['tableOfContentsForm:elapsed'].value=loaded; document.forms[0].elements['tableOfContentsForm:outoftime'].value='true'; clickSubmitForGrade();" />
 <f:verbatim>  </span></f:verbatim>
 
@@ -188,14 +190,14 @@ function clickSubmitForGrade(){
                              && authorization.takeAssessment 
                              && authorization.submitAssessmentForGrade)}">
     <h:commandButton accesskey="#{deliveryMessages.a_submit}" type="submit" value="#{deliveryMessages.button_submit_grading}"
-      action="#{delivery.submitForGrade}" styleClass="active"  
+      action="#{delivery.confirmSubmitTOC}" styleClass="active"  
       onclick="javascript:saveTime()" onkeypress="javascript:saveTime()"
       disabled="#{delivery.actionString=='previewAssessment'}" />
   </h:panelGroup>
 
 <!-- SUBMIT BUTTON FOR TAKE ASSESSMENT VIA URL ONLY -->
   <h:commandButton accesskey="#{deliveryMessages.a_submit}" type="submit" value="#{deliveryMessages.button_submit}"
-    action="#{delivery.submitForGrade}" styleClass="active"   
+    action="#{delivery.confirmSubmitTOC}" styleClass="active"   
     rendered="#{delivery.actionString=='takeAssessmentViaUrl'}" />
 
 <!-- SAVE AND EXIT BUTTON FOR TAKE ASSESMENT AND PREVIEW ASSESSMENT-->

@@ -73,6 +73,7 @@ import org.sakaiproject.tool.assessment.ui.listener.util.ContextUtil;
 import org.sakaiproject.tool.assessment.ui.web.session.SessionUtil;
 import org.sakaiproject.tool.assessment.ui.queue.delivery.TimedAssessmentQueue;
 import org.sakaiproject.tool.assessment.ui.model.delivery.TimedAssessmentGradingModel;
+import org.sakaiproject.util.FormattedText;
 import org.sakaiproject.util.ResourceLoader;
 
 /**
@@ -145,8 +146,15 @@ public class DeliveryActionListener
     	  }
       }
       else {
-    	  // If comes from TOC, set the indexes from request parameters
-    	  goToRightQuestionFromTOC(delivery);
+    	  // If from table of contents page, there is no parameters like partnumber or questionnumber
+    	  if (!delivery.getFromTableOfContents()) {
+    		  // If comes from TOC, set the indexes from request parameters
+        	  goToRightQuestionFromTOC(delivery);
+        	  
+          }
+          else {
+        	  delivery.setFromTableOfContents(false);
+          }
       }
       
       // 4. this purpose of this listener is to integrated itemGradingData and 
@@ -222,7 +230,7 @@ public class DeliveryActionListener
               // If this is a linear access and user clicks on Show Feedback, we do not
               // get data from db. Use delivery bean instead
               if (delivery.getNavigation().equals("1") && ae != null && "showFeedback".equals(ae.getComponent().getId())) {
-            	  log.debug("Do notget data from db if it is linear access and the action is show feedback");
+            	  log.debug("Do not get data from db if it is linear access and the action is show feedback");
             	  ag = delivery.getAssessmentGrading();
             	  Iterator iter = ag.getItemGradingSet().iterator();
             	  while (iter.hasNext())
@@ -1119,8 +1127,19 @@ public class DeliveryActionListener
 
           // Randomize matching the same way for each
         }
+
+        // Show the answers in the same order that student did.
+		String agentString = "";
+		if (delivery.getActionMode() == DeliveryBean.GRADE_ASSESSMENT) {
+			StudentScoresBean studentscorebean = (StudentScoresBean) ContextUtil
+					.lookupBean("studentScores");
+			agentString = studentscorebean.getStudentId();
+		} else {
+			agentString = getAgentString();
+		}
+
         Collections.shuffle(shuffled, 
-        					new Random( (long) item.getText().hashCode() + getAgentString().hashCode()));
+        		new Random( (long) item.getText().hashCode() + agentString.hashCode()));
         /*
         if (item.getTypeId().equals(TypeIfc.MATCHING))
         {
@@ -1336,22 +1355,18 @@ public class DeliveryActionListener
       populateMatching(item, itemBean, publishedAnswerHash);
 
     }
-    if (item.getTypeId().equals(TypeIfc.FILL_IN_BLANK)) // fill in the blank
+    else if (item.getTypeId().equals(TypeIfc.FILL_IN_BLANK)) // fill in the blank
     {
       populateFib(item, itemBean);
-
-      // round the points to the nearest tenth
-
     }
-    
-    if (item.getTypeId().equals(TypeIfc.FILL_IN_NUMERIC)) //numeric response
+    else if (item.getTypeId().equals(TypeIfc.FILL_IN_NUMERIC)) //numeric response
     {
       populateFin(item, itemBean);
-
-      // round the points to the nearest tenth
-
-}
-
+    }
+    else if (item.getTypeId().equals(TypeIfc.ESSAY_QUESTION)) //numeric response
+    {
+      itemBean.setResponseText(FormattedText.unEscapeHtml(itemBean.getResponseText()));
+    }
 
     return itemBean;
   }
@@ -1479,7 +1494,7 @@ public class DeliveryActionListener
           if ((data.getPublishedAnswerId()!=null) && data.getPublishedAnswerId().equals(answer.getId()))
           {
             fbean.setItemGradingData(data);
-            fbean.setResponse(data.getAnswerText());
+            fbean.setResponse(FormattedText.unEscapeHtml(data.getAnswerText()));
             fbean.setIsCorrect(false);
             if (answer.getText() == null)
             {
@@ -1638,7 +1653,7 @@ public class DeliveryActionListener
           {
         	  
             fbean.setItemGradingData(data);
-            fbean.setResponse(data.getAnswerText());
+            fbean.setResponse(FormattedText.unEscapeHtml(data.getAnswerText()));
             fbean.setIsCorrect(false);
             if (answer.getText() == null)
             {
@@ -1879,11 +1894,15 @@ public class DeliveryActionListener
   }
 
   public void setShowStudentQuestionScore(DeliveryBean delivery, PublishedAssessmentFacade publishedAssessment){
-    if (Boolean.TRUE.equals(
-        publishedAssessment.getAssessmentFeedback().getShowStudentQuestionScore())) {
-      if (delivery.getFeedbackComponent()!=null &&
-          delivery.getFeedbackComponent().getShowDateFeedback() && !delivery.getFeedbackOnDate(
-))
+	int action = delivery.getActionMode();
+	// Score should always be shown in grading flow 
+	if (DeliveryBean.GRADE_ASSESSMENT == action) {
+		delivery.setShowStudentQuestionScore(true);
+	}
+	else if (Boolean.TRUE.equals(publishedAssessment.getAssessmentFeedback().getShowStudentQuestionScore())) {
+      if (delivery.getFeedbackComponent()!=null && 
+    		  ((delivery.getFeedbackComponent().getShowDateFeedback() && !delivery.getFeedbackOnDate()) ||
+    		  ((DeliveryBean.TAKE_ASSESSMENT == action || DeliveryBean.TAKE_ASSESSMENT_VIA_URL == action) && delivery.getFeedbackComponent().getShowOnSubmission())))
         delivery.setShowStudentQuestionScore(false);
       else
         delivery.setShowStudentQuestionScore(true);
@@ -1985,7 +2004,7 @@ public class DeliveryActionListener
         else{  // this is a new timed assessment
           delivery.setTimeElapse("0");
 	}
-        queueTimedAssessment(delivery, timeLimit, fromBeginAssessment);
+        queueTimedAssessment(delivery, timeLimit, fromBeginAssessment, publishedAssessment);
         delivery.setBeginAssessment(false);
       }
       else{ // in midst of assessment taking, sync it with timedAG
@@ -2001,7 +2020,7 @@ public class DeliveryActionListener
     }
   }
 
-  private void queueTimedAssessment(DeliveryBean delivery, int timeLimit, boolean fromBeginAssessment){
+  private void queueTimedAssessment(DeliveryBean delivery, int timeLimit, boolean fromBeginAssessment, PublishedAssessmentFacade publishedAssessment){
     AssessmentGradingData ag = delivery.getAssessmentGrading();
     TimedAssessmentQueue queue = TimedAssessmentQueue.getInstance();
     TimedAssessmentGradingModel timedAG = queue.get(ag.getAssessmentGradingId());
@@ -2009,7 +2028,7 @@ public class DeliveryActionListener
       timedAG = new TimedAssessmentGradingModel(ag.getAssessmentGradingId(), 
                 timeLimit, timeLimit - ag.getTimeElapsed().intValue(),
                 new Date(), new Date(), // need modify later
-		false, getTimerId(delivery));
+		false, getTimerId(delivery), publishedAssessment);
       queue.add(timedAG);
       //log.debug("***0. queue="+queue);
       //log.debug("***1. put timedAG in queue, timedAG="+timedAG);

@@ -79,7 +79,7 @@ document.location='../evaluation/questionScore';
 
   <h3>
    
-  <h:outputText value="#{evaluationMessages.part} #{questionScores.partName}#{evaluationMessages.comma} #{evaluationMessages.question} #{questionScores.itemName} (#{totalScores.assessmentName}) "/>
+  <h:outputText value="#{evaluationMessages.part} #{questionScores.partName}#{evaluationMessages.comma} #{evaluationMessages.question} #{questionScores.itemName} (#{totalScores.assessmentName}) " escape="false"/>
   </h3>
   <p class="navViewAction">
     <h:commandLink title="#{evaluationMessages.t_submissionStatus}" action="submissionStatus" immediate="true">
@@ -127,7 +127,7 @@ document.location='../evaluation/questionScore';
       <samigo:dataLine value="#{partinit.questionNumberList}" var="iteminit" separator=" | " first="0" rows="#{partinit.numberQuestionsTotal}" rendered="#{!partinit.isRandomDrawPart}" >
         <h:column>
           <h:commandLink title="#{evaluationMessages.t_questionScores}"action="questionScores" immediate="true" >
-            <h:outputText value="#{evaluationMessages.q} #{iteminit.partNumber} "/>
+            <h:outputText value="#{evaluationMessages.q}&nbsp;#{iteminit.partNumber} " escape="false"/>
 			<f:actionListener
               type="org.sakaiproject.tool.assessment.ui.listener.evaluation.QuestionScorePagerListener" />
             <f:actionListener

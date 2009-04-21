@@ -27,6 +27,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -258,26 +259,43 @@ public class QuestionPoolBean implements Serializable
         }
 
   }
+  
+  class titleComparator implements Comparator {
+	  public int compare(Object o1, Object o2) {
+		  QuestionPoolFacade i1 = (QuestionPoolFacade)o1;
+		  QuestionPoolFacade i2 = (QuestionPoolFacade)o2;
+		  return i1.getTitle().compareToIgnoreCase(i2.getTitle());
+	  }
+  }
 
   public void sortQpoolsByProperty(ArrayList sortedList, String sortProperty, boolean sortAscending)
   {
-        BeanSort sort = new BeanSort(sortedList, sortProperty);
+	  BeanSort sort = new BeanSort(sortedList, sortProperty);
 
-        if (sortProperty.equals("lastModified"))
-        {
-         sort.toDateSort();
-        }
-        else
-        {
-         sort.toStringSort();
-        }
+	  // the generic sort code is pretty slow. Every time it needs to make  a
+	  // comparison it fetches all properties of each of the QuestionPoolFacade's
+	  // it is comparing. That includes more than just the properties that we're
+	  // interested in. One of them requires a database transaction.  So
+	  // optimize the sort on title, which is the one that is almost always used.
+	  if (sortProperty.equals("title")) {
+		  Collections.sort(sortedList, new titleComparator());
+	  } else {
+		  if (sortProperty.equals("lastModified"))
+		  {
+			  sort.toDateSort();
+		  }
+		  else
+		  {
+			  sort.toStringSort();
+		  }
 
-        sortedList = (ArrayList)sort.sort();
+		  sortedList = (ArrayList)sort.sort();
 
-        if (!sortAscending)
-	{
-	    Collections.reverse(sortedList);
-        }
+	  }
+	  if (!sortAscending)
+	  {
+		  Collections.reverse(sortedList);
+	  }
   }
 
   public void setAllItems(ArrayList list) {
@@ -1210,6 +1228,12 @@ public String getAddOrEdit()
 			this.sourcePart = ContextUtil.lookupParam("sectionId");
 			return "copyPool";
 		}
+		
+        FacesContext context=FacesContext.getCurrentInstance();
+        String err;
+        err=rb.getString("no_pools_error");
+        context.addMessage(null, new FacesMessage(err));
+
 		return "editAssessment";
 	}
      

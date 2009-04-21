@@ -1,4 +1,3 @@
-<html>
 <%@ page contentType="text/html;charset=utf-8" pageEncoding="utf-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jsf/html" prefix="h" %>
 <%@ taglib uri="http://java.sun.com/jsf/core" prefix="f" %>
@@ -6,8 +5,13 @@
 <!DOCTYPE html
      PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
-<!-- $Id: confirmAssessmentRetract.jsp 17095 2006-10-12 22:32:50Z ktsao@stanford.edu $
+    <f:view>
+    <html xmlns="http://www.w3.org/1999/xhtml">
+      <head><%= request.getAttribute("html.head") %>
+      <title><h:outputText value="#{deliveryMessages.invalid_assessment}"/></title>
+      </head>
+<!--
+* $Id: assessmentNotAvailable.jsp 28986 2007-04-16 22:52:15Z ktsao@stanford.edu $
 <%--
 ***********************************************************************************
 *
@@ -28,34 +32,29 @@
 **********************************************************************************/
 --%>
 -->
-  <f:view>
-    <html xmlns="http://www.w3.org/1999/xhtml">
-      <head><%= request.getAttribute("html.head") %>
-      <title><h:outputText value="#{assessmentSettingsMessages.retract_heading}"/></title>
-      </head>
       <body onload="<%= request.getAttribute("html.body.onload") %>">
-  <!-- content... -->
- <div class="portletBody">
-  <h3><h:outputText value="#{assessmentSettingsMessages.retract_conf}"/></h3>
- <h:form id="retractAssessmentForm">
-   <h:inputHidden id="templateId" value="#{template.idString}"/>
 
-     <div class="validation tier1">
-       <h:outputText value="#{assessmentSettingsMessages.retract_for_sure}" />
-     </div>
-       <p class="act">
-       <h:commandButton id="retract" accesskey="#{assessmentSettingsMessages.a_retract}" value="#{assessmentSettingsMessages.button_retract}" type="submit"
-         styleClass="active" action="author" >
+<div class="portletBody">
+<h3><h:outputText value="#{deliveryMessages.assessment_not_available}"/></h3>
+<h:form id="redirectLoginForm">
+ <div class="validation">
+<h:outputText  value="#{deliveryMessages.assessment_no_longer_available_message}" />
+ </div>
+
+<p class="act">
+       <h:commandButton accesskey="#{deliveryMessages.a_return}" value="#{deliveryMessages.button_return}" type="submit"
+         styleClass="active" action="select" rendered="#{delivery.actionString=='takeAssessment'}">
           <f:actionListener
-            type="org.sakaiproject.tool.assessment.ui.listener.author.SavePublishedSettingsListener" />
+            type="org.sakaiproject.tool.assessment.ui.listener.select.SelectActionListener" />
        </h:commandButton>
-       <h:commandButton value="#{assessmentSettingsMessages.button_cancel}" type="submit" style="act" action="editPublishedAssessmentSettings" />
-       </p>
 
- </h:form>
-  <!-- end content -->
+
+  <h:commandButton accesskey="#{deliveryMessages.a_next}" value="#{deliveryMessages.button_continue}" type="button" rendered="#{delivery.actionString=='takeAssessmentViaUrl'}"
+       style="act" onclick="javascript:window.open('#{delivery.portal}/login','_top')" onkeypress="javascript:window.open('#{delivery.portal}/login','_top')" />
+</p>
+</h:form>
 </div>
       </body>
     </html>
   </f:view>
-</html>
+

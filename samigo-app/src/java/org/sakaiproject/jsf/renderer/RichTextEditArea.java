@@ -32,6 +32,9 @@ import javax.faces.context.FacesContext;
 import javax.faces.context.ResponseWriter;
 import javax.faces.render.Renderer;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.sakaiproject.component.cover.ServerConfigurationService;
 import org.sakaiproject.tool.cover.ToolManager; 
 import org.sakaiproject.content.cover.ContentHostingService; 
@@ -39,6 +42,7 @@ import org.sakaiproject.util.EditorConfiguration;
 import org.sakaiproject.util.FormattedText;
 import org.sakaiproject.util.ResourceLoader;
 import org.sakaiproject.util.Web;
+
 
 
 /**
@@ -54,6 +58,8 @@ import org.sakaiproject.util.Web;
  */
 public class RichTextEditArea extends Renderer
 {
+  private static Log log = LogFactory.getLog(RichTextEditArea.class);	
+
   //FCK config paths
   private static final String FCK_BASE = "/library/editor/FCKeditor/";
   private static final String FCK_SCRIPT = "fckeditor.js";
@@ -103,7 +109,8 @@ public class RichTextEditArea extends Renderer
     
     //fixes SAK-3116, I'm not sure if this logic really belongs in a renderer, but it 
     //need to happen before the wysiwig is written or the editor tries to be too smart 
-    value = FormattedText.escapeHtmlFormattedTextarea((String) value);
+    //value = FormattedText.escapeHtmlFormattedTextarea((String) value);
+    value = FormattedText.unEscapeHtml((String) value);
 
     String tmpCol = (String) component.getAttributes().get("columns");
     String tmpRow = (String) component.getAttributes().get("rows");
@@ -432,7 +439,9 @@ public class RichTextEditArea extends Renderer
     writer.write("\n\tvar status =  document.getElementById(client_id + '_textinput_current_status');");
     writer.write("\n\tif (status.value == \"firsttime\") {");
     writer.write("\n\t\tstatus.value = \"expaneded\";");
-    writer.write("\n\t\tchef_setupformattedtextarea(client_id, true);\n\t}");
+    writer.write("\n\t\tchef_setupformattedtextarea(client_id, true);");
+    writer.write("\n\t\tsetBlockDivs();");
+    writer.write("\n\t\tretainHideUnhideStatus('none');\n\t}");
     writer.write("\n\telse if (status.value == \"collapsed\") {");
     writer.write("\n\t\tstatus.value = \"expaneded\";");
     writer.write("\n\t\texpandMenu(client_id);\n\t}");
@@ -550,8 +559,14 @@ public class RichTextEditArea extends Renderer
       .getRequestParameterMap();
 
     String newValue = (String) requestParameterMap.get(clientId + "_textinput");
+    StringBuilder alertMsg = new StringBuilder();
+    String finalValue = FormattedText.processFormattedText(newValue, alertMsg);
+    if (alertMsg.length() > 0)
+    {
+    	log.debug(alertMsg.toString());
+    }
 
     org.sakaiproject.jsf.component.RichTextEditArea comp = (org.sakaiproject.jsf.component.RichTextEditArea) component;
-    comp.setSubmittedValue(newValue);
+    comp.setSubmittedValue(finalValue);
   }
 }

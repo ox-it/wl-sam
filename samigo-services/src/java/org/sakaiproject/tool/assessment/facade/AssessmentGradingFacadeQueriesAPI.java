@@ -132,6 +132,8 @@ public interface AssessmentGradingFacadeQueriesAPI
   public List getLastAssessmentGradingList(Long publishedAssessmentId);
 
   public List getLastSubmittedAssessmentGradingList(Long publishedAssessmentId);
+  
+  public List getLastSubmittedOrGradedAssessmentGradingList(Long publishedAssessmentId);
 
   public void saveItemGrading(ItemGradingIfc item);
 
@@ -153,7 +155,7 @@ public interface AssessmentGradingFacadeQueriesAPI
 
   public List getHighestAssessmentGradingList(Long publishedAssessmentId);
   
-  public List getHighestSubmittedAssessmentGradingList(Long publishedAssessmentId);
+  public List getHighestSubmittedOrGradedAssessmentGradingList(Long publishedAssessmentId);
   
   public Set getItemGradingSet(Long assessmentGradingId);
 
@@ -191,5 +193,10 @@ public interface AssessmentGradingFacadeQueriesAPI
 
   public int getLateSubmissionsNumberByAgentId(Long publishedAssessmentId, String agentIdString, Date dueDate);
   
-  public List getExportResponsesData(String publishedAssessmentId, boolean anonymous, String audioMessage, String fileUploadMessage);
+  public List getExportResponsesData(String publishedAssessmentId, boolean anonymous, String audioMessage, String fileUploadMessage, String questionString, String textString, String rationaleString);
+
+  public void removeUnsubmittedAssessmentGradingData(AssessmentGradingIfc data);
+
+  public String getFilename(Long itemGradingId, String agentId, String filename);
+
 }

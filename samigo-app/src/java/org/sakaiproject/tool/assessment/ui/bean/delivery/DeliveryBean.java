@@ -55,6 +55,7 @@ import org.sakaiproject.tool.assessment.data.dao.grading.AssessmentGradingData;
 import org.sakaiproject.tool.assessment.data.dao.grading.ItemGradingData;
 import org.sakaiproject.tool.assessment.data.dao.grading.MediaData;
 import org.sakaiproject.tool.assessment.data.ifc.assessment.AssessmentAccessControlIfc;
+import org.sakaiproject.tool.assessment.data.ifc.assessment.AssessmentBaseIfc;
 import org.sakaiproject.tool.assessment.facade.AgentFacade;
 import org.sakaiproject.tool.assessment.facade.PublishedAssessmentFacade;
 import org.sakaiproject.tool.assessment.services.GradingService;
@@ -228,6 +229,8 @@ public class DeliveryBean
   // the assessmentGradingData in deliver bean will be the newly created one. Then, of course, the assessmentGradingId 
   // will be the new id which is not what we want in review assessment or grade assessment
   private Long assessmentGradingId;
+  
+  private boolean fromTableOfContents;
   
   /**
    * Creates a new DeliveryBean object.
@@ -1320,6 +1323,57 @@ public class DeliveryBean
     return returnValue;
   }
 
+  public String confirmSubmit()
+  {
+	  String nextAction = checkBeforeProceed();
+	  log.debug("***** next Action="+nextAction);
+	  if (!("safeToProceed").equals(nextAction)){
+		  return nextAction;
+	  }
+
+	  setForGrade(false);
+	  syncTimeElapsedWithServer();
+
+	  if (this.actionMode == TAKE_ASSESSMENT
+			  || this.actionMode == TAKE_ASSESSMENT_VIA_URL)
+	  {
+		  SubmitToGradingActionListener listener =
+			  new SubmitToGradingActionListener();
+		  listener.processAction(null);
+	  }
+
+	  DeliveryActionListener l2 = new DeliveryActionListener();
+	  l2.processAction(null);
+	  return "confirmsubmit";
+  }
+  
+  public String confirmSubmitTOC()
+  {
+	  String nextAction = checkBeforeProceed();
+	  log.debug("***** next Action="+nextAction);
+	  if (!("safeToProceed").equals(nextAction)){
+		  return nextAction;
+	  }
+
+	  setForGrade(false);
+	  syncTimeElapsedWithServer();
+
+	  if (this.actionMode == TAKE_ASSESSMENT
+			  || this.actionMode == TAKE_ASSESSMENT_VIA_URL)
+	  {
+		  SubmitToGradingActionListener listener =
+			  new SubmitToGradingActionListener();
+		  listener.processAction(null);
+	  }
+	  
+	  setFromTableOfContents(true);
+	  DeliveryActionListener l2 = new DeliveryActionListener();
+	  l2.processAction(null);
+
+	  setContinue(false);
+	  return "confirmsubmit";
+  }
+
   public String saveAndExit()
   {
     String nextAction = checkBeforeProceed();
@@ -1422,6 +1476,24 @@ public class DeliveryBean
     l2.processAction(null);
 
     reload = false;
+    return "takeAssessment";
+  }
+
+  public String confirmSubmitPrevious()
+  {
+    String nextAction = checkBeforeProceed();
+    log.debug("***** next Action="+nextAction);
+    if (!("safeToProceed").equals(nextAction)){
+      return nextAction;
+    }
+
+    forGrade = false;
+
+    syncTimeElapsedWithServer();
+
+    DeliveryActionListener l2 = new DeliveryActionListener();
+    l2.processAction(null);
+
     return "takeAssessment";
   }
 
@@ -1808,7 +1880,7 @@ public class DeliveryBean
     log.debug("***6a. addMediaToItemGrading, itemGradinDataId=" +
               itemGradingData.getItemGradingId());
     // 1b. get filename
-    String fullname = media.getName();
+    String fullname = media.getName().trim();
     int underscore_index = fullname.lastIndexOf("_"); 
     int dot_index = fullname.lastIndexOf("."); 
     String filename = fullname.substring(0,underscore_index);
@@ -1817,13 +1889,17 @@ public class DeliveryBean
     	filename = filename + fullname.substring(dot_index);
     }
     log.debug("**** filename="+filename);
+
+    String updatedFilename = gradingService.getFileName(itemGradingData.getItemGradingId(), agent, filename);
+    log.debug("**** updatedFilename="+updatedFilename);
+
     
     if (SAVETODB)
     { // put the byte[] in
       mediaData = new MediaData(itemGradingData, mediaByte,
                                 new Long(mediaByte.length + ""),
                                 mimeType, "description", null,
-                                filename, false, false, new Integer(1),
+                                updatedFilename, false, false, new Integer(1),
                                 agent, new Date(),
                                 agent, new Date(), null);
     }
@@ -1832,7 +1908,7 @@ public class DeliveryBean
       mediaData = new MediaData(itemGradingData, null,
                                 new Long(mediaByte.length + ""),
                                 mimeType, "description", mediaLocation,
-                                filename, false, false, new Integer(1),
+                                updatedFilename, false, false, new Integer(1),
                                 agent, new Date(),
                                 agent, new Date(), null);
 
@@ -2302,10 +2378,10 @@ public class DeliveryBean
 	      TimedAssessmentQueue queue = TimedAssessmentQueue.getInstance();
 	      TimedAssessmentGradingModel timedAG = queue.get(adata.getAssessmentGradingId());
 	      if (timedAG != null){
-	        int timeElapsed  = Math.round(((new Date()).getTime() - timedAG.getBeginDate().getTime())/1000); //in sec
+	        int timeElapsed  = Math.round((float)((new Date()).getTime() - timedAG.getBeginDate().getTime())/1000.0f); //in sec
 	        // this is to cover the scenerio when user took an assessment, Save & Exit, Then returned at a
 	        // later time, we need to account for the time taht he used before
-	        int timeTakenBefore = Math.round(timedAG.getTimeLimit() - timedAG.getTimeLeft()); // in sec
+	        int timeTakenBefore = timedAG.getTimeLimit() - timedAG.getTimeLeft(); // in sec
 	        //log.debug("***time passed afer saving answer to DB="+timeElapsed+timeTakenBefore);
 	        adata.setTimeElapsed(new Integer(timeElapsed+timeTakenBefore));
 	        GradingService gradingService = new GradingService();
@@ -2324,7 +2400,7 @@ public class DeliveryBean
 		      TimedAssessmentQueue queue = TimedAssessmentQueue.getInstance();
 		      TimedAssessmentGradingModel timedAG = queue.get(adata.getAssessmentGradingId());
 		      if (timedAG != null){
-		        int timeElapsed  = Math.round(((new Date()).getTime() - timedAG.getBeginDate().getTime())/1000); //in sec
+		        int timeElapsed  = Math.round((float)((new Date()).getTime() - timedAG.getBeginDate().getTime())/1000.0f); //in sec
 		        // this is to cover the scenerio when user took an assessment, Save & Exit, Then returned at a
 		        // later time, we need to account for the time taht he used before
 		        int timeTakenBefore = Math.round(timedAG.getTimeLimit() - timedAG.getTimeLeft()); // in sec
@@ -2482,6 +2558,10 @@ public class DeliveryBean
       return "error";
     }
 
+    if (this.actionMode == PREVIEW_ASSESSMENT) {
+		  return "safeToProceed";
+    }
+  
     GradingService service = new GradingService();
     AssessmentGradingData assessmentGrading=null;
     if (adata!=null){
@@ -2492,20 +2572,19 @@ public class DeliveryBean
                           getPublishedAssessment().getPublishedAssessmentId().toString())).intValue();
     log.debug("***totalSubmitted="+totalSubmitted);
 
-    log.debug("check 0");
+    // log.debug("check 0");
+    if (isRemoved()){
+        return "isRemoved";
+    }
+    
+    log.debug("check 1");
     // check 0: check for start date
     if (!isAvailable()){
       return ("assessmentNotAvailable");
     }
     
-    log.debug("check 1");
-    // check 1: check for multiple window & browser trick 
-    if (assessmentGrading!=null && !checkDataIntegrity(assessmentGrading)){
-      return ("discrepancyInData");
-    }
-
     log.debug("check 2");
-    // check 2: if workingassessment has been submiited?
+    // check 1: check for multiple window & browser trick 
     // this is to prevent student submit assessment and use a 2nd window to 
     // continue working on the submitted work.
     if (assessmentGrading!=null && getAssessmentHasBeenSubmitted(assessmentGrading)){
@@ -2587,8 +2666,6 @@ public class DeliveryBean
   }
 
   private boolean isAvailable(){
-	  if (this.actionMode == PREVIEW_ASSESSMENT)
-		  return true;
 	  boolean isAvailable = true;
 	  Date currentDate = new Date();
 	  Date startDate = publishedAssessment.getAssessmentAccessControl().getStartDate();
@@ -2618,6 +2695,15 @@ public class DeliveryBean
     return isRetracted;
   }
 
+
+  private boolean isRemoved(){
+	  Integer status = publishedAssessment.getStatus();
+	  if (status.equals(AssessmentBaseIfc.DEAD_STATUS)) {
+		  return true;
+	  }
+	  return false;
+  }
+  
   private boolean checkDataIntegrity(AssessmentGradingData assessmentGrading){
     // get assessmentGrading from DB, this is to avoid same assessment being
     // opened in the differnt browser
@@ -2730,6 +2816,16 @@ public class DeliveryBean
 	      return assessmentGradingId;
 	  }
 
+	  public void setFromTableOfContents(boolean fromTableOfContents)
+	  {
+	    this.fromTableOfContents = fromTableOfContents;
+	  }
+	  
+	  public boolean getFromTableOfContents()
+	  {
+	      return fromTableOfContents;
+	  }
+
 	  public void setAssessmentGradingId(Long assessmentGradingId)
 	  {
 	    this.assessmentGradingId = assessmentGradingId;
@@ -2750,7 +2846,7 @@ public class DeliveryBean
 		log.debug("actualNumberRetake =" + actualNumberRetake);
   	    if (!("previewAssessment").equals(actionString) && 
   	    	(this.dueDate != null && !acceptLateSubmission && actualNumberRetake >= numberRetake)) {
-			int timeBeforeDue  = Math.round((this.dueDate.getTime() - (new Date()).getTime())/1000); //in sec
+			int timeBeforeDue  = Math.round((float)(this.dueDate.getTime() - (new Date()).getTime())/1000.0f); //in sec
 			if (timeBeforeDue < Integer.parseInt(timeLimit)) {
 				return String.valueOf(timeBeforeDue);
 			}

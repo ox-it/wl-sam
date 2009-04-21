@@ -59,9 +59,22 @@ for (i=0; i<document.links.length; i++) {
 }
 
 document.links[newindex].onclick();
+pause(500);
 window.open("../evaluation/createNewEmail.faces?fromEmailLinkClick=true&fromName=" + fromName + "&fromEmailAddress=" + fromEmailAddress + "&toName=" + toName + "&toEmailAddress=" + toEmailAddress +  "&assessmentName=" + assessmentName,'createEmail','width=600,height=600,scrollbars=yes, resizable=yes');
 
 document.location='../evaluation/totalScores';
+}
+
+function pause(numberMillis)
+{
+var now = new Date();
+var exitTime = now.getTime() + numberMillis;
+while (true)
+{
+now = new Date();
+if (now.getTime() > exitTime)
+return;
+}
 }
 
 </script>
@@ -78,7 +91,7 @@ document.location='../evaluation/totalScores';
   <h3>
     <h:outputText value="#{evaluationMessages.title_total}"/>
     <h:outputText value="#{evaluationMessages.column} "/>
-    <h:outputText value="#{totalScores.assessmentName} "/> 
+    <h:outputText value="#{totalScores.assessmentName} " escape="fasel"/> 
   </h3>
 
   <p class="navViewAction">

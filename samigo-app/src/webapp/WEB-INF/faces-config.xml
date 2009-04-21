@@ -166,6 +166,21 @@
  		<value>org.sakaiproject.tool.assessment.bundle.TemplateMessages</value>
  	</managed-property>
  </managed-bean>  
+
+  <managed-bean>
+ 	<description>
+ 		Dynamic Resource Bundle Loader
+ 	</description>
+ 	<managed-bean-name>samLiteMessages</managed-bean-name>
+ 	<managed-bean-class>org.sakaiproject.util.ResourceLoader</managed-bean-class>
+ 	<managed-bean-scope>session</managed-bean-scope>
+ 	<managed-property>
+ 		<description>Bundle baseName</description>
+ 		<property-name>baseName</property-name>
+ 		<value>org.sakaiproject.tool.assessment.bundle.SamLite</value>
+ 	</managed-property>
+ </managed-bean>  
+
   <!-- Managed Beans -->
   <!-- *** TEST *** -->
   <!-- main test bean -->
@@ -557,6 +572,10 @@
       <to-view-id>/jsf/delivery/deliverAssessment.jsp</to-view-id>
     </navigation-case>
     <navigation-case>
+      <from-outcome>confirmsubmit</from-outcome>
+      <to-view-id>/jsf/delivery/confirmSubmit.jsp</to-view-id>
+    </navigation-case>
+    <navigation-case>
       <from-outcome>assessmentHasBeenSubmitted</from-outcome>
       <to-view-id>/jsf/delivery/assessmentHasBeenSubmitted.jsp</to-view-id>
     </navigation-case>
@@ -567,6 +586,10 @@
     <navigation-case>
       <from-outcome>noLateSubmission</from-outcome>
       <to-view-id>/jsf/delivery/noLateSubmission.jsp</to-view-id>
+    </navigation-case>
+    <navigation-case>
+      <from-outcome>isRemoved</from-outcome>
+      <to-view-id>/jsf/delivery/isRemoved.jsp</to-view-id>
     </navigation-case>
     <navigation-case>
       <from-outcome>isRetracted</from-outcome>
