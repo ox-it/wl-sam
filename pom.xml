@@ -20,7 +20,7 @@
     <module>samigo-api</module>
     <module>samigo-app</module>
     <module>samigo-audio</module>
-    <module>samigo-help</module>
+    <!-- WL-1452 <module>samigo-help</module> -->
     <module>samigo-hibernate</module>
     <module>samigo-pack</module>
     <module>samigo-qti</module>
